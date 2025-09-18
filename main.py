@@ -1,6 +1,6 @@
 import pygame
 from os.path import join
-from random import randint
+from random import randint, uniform
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, groups):
@@ -53,6 +53,21 @@ class Laser(pygame.sprite.Sprite):
         if self.rect.bottom < 0:
             self.kill()
 
+class Meteor(pygame.sprite.Sprite):
+    def __init__(self, groups, image, position):
+        super().__init__(groups)
+        self.image = image
+        self.rect = self.image.get_frect(center=position)
+        self.speed = 400
+        self.start_time = pygame.time.get_ticks()
+        self.lifetime = 3000
+        self.direction = pygame.math.Vector2(uniform(-0.5, 0.5), 1)
+
+    def update(self, delta_time):
+        self.rect.center += self.direction.normalize() * self.speed * delta_time
+        if pygame.time.get_ticks() - self.start_time >= self.lifetime:
+            self.kill()
+
 # Initialise pygame
 pygame.init()
 
@@ -78,14 +93,12 @@ all_sprites = pygame.sprite.Group()
 
 star_image = pygame.image.load(join("images", "star.png")).convert_alpha()
 laser_image = pygame.image.load(join("images", "laser.png")).convert_alpha()
+meteor_image = pygame.image.load(join("images", "meteor.png")).convert_alpha()
 stars = []
 for _ in range(20):
     star = Star(all_sprites, star_image)
     stars.append(star)
 player = Player(all_sprites)
-
-meteor_surface = pygame.image.load(join("images", "meteor.png")).convert_alpha()
-meteor_rectangle = meteor_surface.get_frect(center=(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2))
 
 meteor_event = pygame.event.custom_type()
 pygame.time.set_timer(meteor_event, 500)
@@ -99,7 +112,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == meteor_event:
-            print("meteor!")
+            Meteor(all_sprites, meteor_image, (randint(0, WINDOW_WIDTH), randint(-200, -100))) 
 
     all_sprites.update(delta_time)
 
