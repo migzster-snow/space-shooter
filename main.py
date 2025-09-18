@@ -2,6 +2,31 @@ import pygame
 from os.path import join
 from random import randint
 
+class Player(pygame.sprite.Sprite):
+    def __init__(self, groups):
+        super().__init__(groups)
+        self.image = pygame.image.load(join("images", "player.png")).convert_alpha()
+        self.rect = self.image.get_frect(center=(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2))
+        self.direction = pygame.math.Vector2()
+        self.speed = 300
+
+    def update(self, delta_time):
+        keys = pygame.key.get_pressed()
+        self.direction.x = int(keys[pygame.K_RIGHT]) - int(keys[pygame.K_LEFT])
+        self.direction.y = int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])
+        self.direction = self.direction.normalize() if self.direction else self.direction
+        self.rect.center += self.direction * self.speed * delta_time
+
+        recent_keys = pygame.key.get_just_pressed()
+        if recent_keys[pygame.K_SPACE]:
+            print("fire laser!")
+
+class Star(pygame.sprite.Sprite):
+    def __init__(self, groups, image):
+        super().__init__(groups)
+        self.image = image
+        self.rect = self.image.get_frect(center=(randint(0, WINDOW_WIDTH), randint(0, WINDOW_HEIGHT)))
+
 # Initialise pygame
 pygame.init()
 
@@ -23,14 +48,14 @@ surface = pygame.Surface((100, 200))
 surface.fill("orange")
 x = 100
 
-# Set up a surface with an image
-player_surface = pygame.image.load(join("images", "player.png")).convert_alpha()
-player_rectangle = player_surface.get_frect(center=(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2))
-player_direction = pygame.math.Vector2()
-player_speed = 300
+all_sprites = pygame.sprite.Group()
 
-star_surface = pygame.image.load(join("images", "star.png")).convert_alpha()
-star_positions = [(randint(0, WINDOW_WIDTH), randint(0, WINDOW_HEIGHT)) for i in range(20)]
+star_image = pygame.image.load(join("images", "star.png")).convert_alpha()
+stars = []
+for _ in range(20):
+    star = Star(all_sprites, star_image)
+    stars.append(star)
+player = Player(all_sprites)
 
 meteor_surface = pygame.image.load(join("images", "meteor.png")).convert_alpha()
 meteor_rectangle = meteor_surface.get_frect(center=(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2))
@@ -47,19 +72,11 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    keys = pygame.key.get_pressed()
-    player_direction.x = int(keys[pygame.K_RIGHT]) - int(keys[pygame.K_LEFT])
-    player_direction.y = int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])
-    player_direction = player_direction.normalize() if player_direction else player_direction
-    player_rectangle.center += player_direction * player_speed * delta_time
+    all_sprites.update(delta_time)
 
     # draw the game
     display_surface.fill("darkgray")
-    for star_position in star_positions:
-        display_surface.blit(star_surface, star_position)
-    display_surface.blit(meteor_surface, meteor_rectangle)
-    display_surface.blit(laser_surface, laser_rectangle)
-    display_surface.blit(player_surface, player_rectangle)
+    all_sprites.draw(display_surface)
     pygame.display.update()
 
 # Uninitialise pygame
